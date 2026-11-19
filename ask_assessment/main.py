@@ -18,7 +18,9 @@ The tricky part is the parent class. ast.walk won’t tell you a node’s parent
 Then write a pytest test using a tiny sample file like the one above, where you know the right answer. Writing the expected result by hand first is the algorithm habit from before.
 
 Paste what you get, including anything that fails."""
+import pprint
 
+# ... your extract_functions code above ...
 import ast
 
 FUNC_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef)
@@ -47,3 +49,9 @@ def extract_functions_body(file_path):
                     })
 
     return results
+
+
+
+if __name__ == "__main__":
+    functions = extract_functions_body("sample.py")  # Replace with your exact function name
+    pprint.pprint(functions)
