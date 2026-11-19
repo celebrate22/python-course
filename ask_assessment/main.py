@@ -18,3 +18,32 @@ The tricky part is the parent class. ast.walk won’t tell you a node’s parent
 Then write a pytest test using a tiny sample file like the one above, where you know the right answer. Writing the expected result by hand first is the algorithm habit from before.
 
 Paste what you get, including anything that fails."""
+
+import ast
+
+FUNC_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef)
+
+def extract_functions_body(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        tree = ast.parse(file.read(), filename=file_path)
+
+    results = []
+    for node in tree.body:
+        if isinstance(node, FUNC_TYPES):
+            results.append({
+                "name": node.name,
+                "start_line": node.lineno,
+                "end_line": node.end_lineno,
+                "parent_class": None,
+            })
+        elif isinstance(node, ast.ClassDef):
+            for child in node.body:
+                if isinstance(child, FUNC_TYPES):
+                    results.append({
+                        "name": child.name,
+                        "start_line": child.lineno,
+                        "end_line": child.end_lineno,
+                        "parent_class": node.name,
+                    })
+
+    return results
