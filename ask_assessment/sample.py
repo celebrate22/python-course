@@ -1,15 +1,4 @@
-def greet(name):
-    return f"Hello, {name}!"
+class A:
+    def method_one(self): ...
 
-# A comment with def fake_comment(): inside it
-
-def add_numbers(a, b):
-    message = """
-    def fake_docstring():
-        pass
-    """
-    return a + b
-
-class Calculator:
-    def multiply(self, x, y):
-        return x * y
+def helper(): ...
