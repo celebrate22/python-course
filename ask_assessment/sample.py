@@ -1,4 +1,6 @@
-import os
+from main import extract_functions
+
+NESTED_SAMPLE = """import os
 
 try:
     import ujson as json
@@ -14,3 +16,18 @@ class A:
 
 if __name__ == "__main__":
     def main(): ...
+"""
+
+EXPECTED = [
+    {"name": "json_fallback", "qualified_name": "json_fallback", "start_line": 6, "end_line": 6},
+    {"name": "outer", "qualified_name": "outer", "start_line": 8, "end_line": 9},
+    {"name": "inner", "qualified_name": "outer.inner", "start_line": 9, "end_line": 9},
+    {"name": "deep", "qualified_name": "A.B.deep", "start_line": 13, "end_line": 13},
+    {"name": "main", "qualified_name": "main", "start_line": 16, "end_line": 16},
+]
+
+def test_extract_nested_functions(tmp_path):
+    sample_file = tmp_path / "nested.py"
+    sample_file.write_text(NESTED_SAMPLE, encoding="utf-8")
+
+    assert extract_functions(sample_file) == EXPECTED

@@ -1,14 +1,14 @@
-# import ast
+import ast
 
-# def list_functions(file_path):
-#     with open(file_path, "r", encoding="utf-8") as file:
-#         tree = ast.parse(file.read(), filename=file_path)
+def list_functions(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        tree = ast.parse(file.read(), filename=file_path)
 
-#     for node in ast.walk(tree):
-#         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-#             print(f"function_name: {node.name}, line_number: {node.lineno}")
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            print(f"function_name: {node.name}, line_number: {node.lineno}")
 
-# list_functions("sample.py")
+
 
 """
 Rewrite it so it returns a list of dictionaries, one per function, each with name, start_line, end_line, and parent_class (None for top-level functions), sorted in file order.
@@ -52,6 +52,48 @@ def extract_functions_body(file_path):
 
 
 
+"""Make the function handle any depth of nesting, and record a qualified name for each result, like A.B.deep or outer.inner, instead of a single parent_class. 
+Think about whether recursion or a NodeVisitor with a stack of enclosing names fits better, 
+since your current approach was always going to struggle here. Also note that if, try and with blocks contain statements too."""
+
+import ast
+import pprint
+
+class QualifiedFunctionVisitor(ast.NodeVisitor):
+    def __init__(self):
+        self.results = []
+        self.scope = []
+
+    def visit_ClassDef(self, node):
+        self.scope.append(node.name)
+        try:
+            self.generic_visit(node)
+        finally:
+            self.scope.pop()
+
+    def visit_FunctionDef(self, node):
+        self.scope.append(node.name)
+        try:
+            self.results.append({
+                "name": node.name,
+                "qualified_name": ".".join(self.scope),
+                "start_line": node.lineno,
+                "end_line": node.end_lineno,
+            })
+            self.generic_visit(node)
+        finally:
+            self.scope.pop()
+
+    def visit_AsyncFunctionDef(self, node):
+        self.visit_FunctionDef(node)
+
+def extract_functions(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        tree = ast.parse(file.read(), filename=str(file_path))
+
+    visitor = QualifiedFunctionVisitor()
+    visitor.visit(tree)
+    return sorted(visitor.results, key=lambda item: item["start_line"])
+
 if __name__ == "__main__":
-    functions = extract_functions_body("sample.py")  # Replace with your exact function name
-    pprint.pprint(functions)
+    pprint.pprint(extract_functions("sample.py"))
