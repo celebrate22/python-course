@@ -151,3 +151,7 @@ def extract_functions(file_path):
 
 if __name__ == "__main__":
     pprint.pprint(extract_functions("sample.py"))
+
+"""Split your test into small ones, including an async case.
+Write the failing decorator test, then fix the code.
+Add a test for a file with a syntax error, and decide what the function should do."""
