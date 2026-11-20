@@ -52,9 +52,11 @@ def extract_functions_body(file_path):
 
 
 
-"""Make the function handle any depth of nesting, and record a qualified name for each result, like A.B.deep or outer.inner, instead of a single parent_class. 
+"""
+Make the function handle any depth of nesting, and record a qualified name for each result, like A.B.deep or outer.inner, instead of a single parent_class. 
 Think about whether recursion or a NodeVisitor with a stack of enclosing names fits better, 
-since your current approach was always going to struggle here. Also note that if, try and with blocks contain statements too."""
+since your current approach was always going to struggle here. Also note that if, try and with blocks contain statements too.
+"""
 
 import ast
 import pprint
@@ -94,6 +96,58 @@ def extract_functions(file_path):
     visitor = QualifiedFunctionVisitor()
     visitor.visit(tree)
     return sorted(visitor.results, key=lambda item: item["start_line"])
+
+"""
+Write a pytest test. Use a snippet like the example above as a string, 
+write the expected list by hand first, and assert that your function returns it. 
+You’ll likely have to split the function in two to do this, which is the lesson
+"""
+
+import ast
+import pprint
+
+
+class QualifiedFunctionVisitor(ast.NodeVisitor):
+    def __init__(self):
+        self.results = []
+        self.scope = []
+
+    def visit_ClassDef(self, node):
+        self.scope.append(node.name)
+        try:
+            self.generic_visit(node)
+        finally:
+            self.scope.pop()
+
+    def visit_FunctionDef(self, node):
+        self.scope.append(node.name)
+        try:
+            self.results.append({
+                "name": node.name,
+                "qualified_name": ".".join(self.scope),
+                "start_line": node.lineno,
+                "end_line": node.end_lineno,
+            })
+            self.generic_visit(node)
+        finally:
+            self.scope.pop()
+
+    def visit_AsyncFunctionDef(self, node):
+        self.visit_FunctionDef(node)
+
+
+def extract_functions_from_source(source, filename="<string>"):
+    tree = ast.parse(source, filename=filename)
+    visitor = QualifiedFunctionVisitor()
+    visitor.visit(tree)
+    return sorted(visitor.results, key=lambda item: item["start_line"])
+
+
+def extract_functions(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        source = file.read()
+    return extract_functions_from_source(source, filename=str(file_path))
+
 
 if __name__ == "__main__":
     pprint.pprint(extract_functions("sample.py"))
