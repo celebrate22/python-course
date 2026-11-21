@@ -149,9 +149,64 @@ def extract_functions(file_path):
     return extract_functions_from_source(source, filename=str(file_path))
 
 
-if __name__ == "__main__":
-    pprint.pprint(extract_functions("sample.py"))
-
 """Split your test into small ones, including an async case.
 Write the failing decorator test, then fix the code.
 Add a test for a file with a syntax error, and decide what the function should do."""
+
+import ast
+import pprint
+
+
+class QualifiedFunctionVisitor(ast.NodeVisitor):
+    def __init__(self):
+        self.results = []
+        self.scope = []
+
+    def visit_ClassDef(self, node):
+        self.scope.append(node.name)
+        try:
+            self.generic_visit(node)
+        finally:
+            self.scope.pop()
+
+    def visit_FunctionDef(self, node):
+        self.scope.append(node.name)
+        try:
+            start_line = (
+                node.decorator_list[0].lineno
+                if node.decorator_list
+                else node.lineno
+            )
+            self.results.append({
+                "name": node.name,
+                "qualified_name": ".".join(self.scope),
+                "start_line": start_line,
+                "end_line": node.end_lineno,
+            })
+            self.generic_visit(node)
+        finally:
+            self.scope.pop()
+
+    def visit_AsyncFunctionDef(self, node):
+        self.visit_FunctionDef(node)
+
+
+def extract_functions_from_source(source, filename="<string>"):
+    try:
+        tree = ast.parse(source, filename=filename)
+    except SyntaxError:
+        return []
+
+    visitor = QualifiedFunctionVisitor()
+    visitor.visit(tree)
+    return sorted(visitor.results, key=lambda item: item["start_line"])
+
+
+def extract_functions(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        source = file.read()
+    return extract_functions_from_source(source, filename=str(file_path))
+
+
+if __name__ == "__main__":
+    pprint.pprint(extract_functions("sample.py"))
