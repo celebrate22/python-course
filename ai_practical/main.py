@@ -1,0 +1,1 @@
+"""my practicals for ai engineering from scratch"""
